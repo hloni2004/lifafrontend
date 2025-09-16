@@ -14,7 +14,7 @@ export const getCustomerByIdAsAdmin = async (id: number): Promise<Customer> => {
 };
 
 export const createCustomerAsAdmin = async (customer: Customer): Promise<Customer> => {
-    const response = await api.post(`${ADMIN_URL}/customers`, customer);
+    const response = await api.post(`${ADMIN_URL}`, customer);
     return response.data;
 };
 
@@ -28,17 +28,17 @@ export const deleteCustomerAsAdmin = async (id: number): Promise<void> => {
 };
 
 export const searchCustomersByName = async (name: string): Promise<Customer[]> => {
-    const response = await api.get(`${ADMIN_URL}/customers/search?name=${encodeURIComponent(name)}`);
+    const response = await api.get(`${ADMIN_URL}/customers/search/${encodeURIComponent(name)}`);
     return response.data;
 };
 
 export const activateCustomer = async (id: number): Promise<Customer> => {
-    const response = await api.put(`${ADMIN_URL}/customers/${id}/activate`);
+    const response = await api.post(`${ADMIN_URL}/customers/${id}/activate`);
     return response.data;
 };
 
 export const deactivateCustomer = async (id: number): Promise<Customer> => {
-    const response = await api.put(`${ADMIN_URL}/customers/${id}/deactivate`);
+    const response = await api.post(`${ADMIN_URL}/customers/${id}/deactivate`);
     return response.data;
 };
 

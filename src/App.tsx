@@ -9,6 +9,7 @@ import ScaleTestApi from "./views/ScaleTestApi";
 import PositionTestApi from "./views/PositionTestApi";
 import RotationTestApi from "./views/RotationTestApi";
 import PlacementDataTestApi from "./views/PlacementDataTestApi";
+import AdminDashboard from "./components/AdminDashboard";
 
 import { Cart } from "./components/Cart";
 import { Checkout } from "./components/Checkout";
@@ -24,34 +25,58 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     return isLoggedIn ? <>{children}</> : <Navigate to="/login" replace />;
 };
 
+// Admin-only route wrapper
+const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { isLoggedIn, user } = useAuth();
+    
+    if (!isLoggedIn) {
+        return <Navigate to="/login" replace />;
+    }
+    
+    if (user?.role !== 'ADMIN') {
+        return <Navigate to="/tshirt-designer" replace />;
+    }
+    
+    return <>{children}</>;
+};
+
 // Main layout with cart and routes
 function MainLayout() {
-    const { isLoggedIn, login } = useAuth();
+    const { isLoggedIn, login, user } = useAuth();
     const navigate = useNavigate();
 
-    // Handle successful auth and redirect to /tshirt-designer
+    // Handle successful auth and redirect based on role
     const handleAuthSuccess = (userData: any) => {
         login(userData);
-        navigate("/tshirt-designer");
+        
+        // Redirect based on user role
+        if (userData.role === 'ADMIN') {
+            navigate("/admin");
+        } else {
+            navigate("/tshirt-designer");
+        }
     };
 
     return (
         <>
-            {isLoggedIn && <Cart />}
+            {isLoggedIn && user?.role !== 'ADMIN' && <Cart />}
             <Routes>
                 {/* Auth */}
                 <Route path="/login" element={<Auth onAuthSuccess={handleAuthSuccess} />} />
 
-                {/* Designer routes */}
+                {/* Admin Routes */}
+                <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+
+                {/* Customer Routes */}
                 <Route path="/" element={<ProtectedRoute><TShirtDesigner /></ProtectedRoute>} />
                 <Route path="/tshirt-designer" element={<ProtectedRoute><TShirtDesigner /></ProtectedRoute>} />
                 <Route path="/tshirt-designer-main" element={<ProtectedRoute><TShirtDesignerMain /></ProtectedRoute>} />
 
-                {/* Order & Checkout */}
+                {/* Order & Checkout (Customer only) */}
                 <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
                 <Route path="/order" element={<ProtectedRoute><OrderPage /></ProtectedRoute>} />
 
-                {/* Profile */}
+                {/* Profile (Customer only) */}
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
                 {/* Test APIs */}
