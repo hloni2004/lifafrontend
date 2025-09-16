@@ -1,7 +1,33 @@
+// AdminDashboard.tsx
 import React, { useState, useEffect } from 'react';
 import { Customer } from '../domain/Customer';
 import * as adminService from '../service/adminService';
 import { useAuth } from '../context/AuthContext';
+
+interface FormData {
+    firstName: string;
+    lastName: string;
+    userName: string;
+    password: string;
+    customerDiscount: number;
+    address: {
+        addressId?: number;
+        propertyNumber?: number;
+        buildingName: string;
+        unitNumber: number;
+        poBoxNumber: number;
+        street: string;
+        municipality: string;
+        province: string;
+        postalCode: string;
+        country: string;
+    };
+    contact: {
+        contactId?: number;
+        phoneNumber: string;
+        email: string;
+    };
+}
 
 const AdminDashboard: React.FC = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
@@ -13,7 +39,7 @@ const AdminDashboard: React.FC = () => {
     const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
     const { user, logout } = useAuth();
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         firstName: '',
         lastName: '',
         userName: '',
@@ -72,7 +98,6 @@ const AdminDashboard: React.FC = () => {
 
     const deleteCustomer = async (id: number) => {
         if (!window.confirm('Are you sure you want to delete this student?')) return;
-
         setLoading(true);
         try {
             await adminService.deleteCustomerAsAdmin(id);
@@ -102,8 +127,8 @@ const AdminDashboard: React.FC = () => {
                 password: formData.password,
                 role: 'CUSTOMER',
                 customerDiscount: formData.customerDiscount,
-                address: { ...formData.address, addressId: editingCustomer?.address?.addressId || 0 },
-                contact: { ...formData.contact, contactId: editingCustomer?.contact?.contactId || 0 }
+                address: { ...formData.address, addressId: editingCustomer?.address?.addressId },
+                contact: { ...formData.contact, contactId: editingCustomer?.contact?.contactId }
             };
 
             if (editingCustomer) {
@@ -126,10 +151,11 @@ const AdminDashboard: React.FC = () => {
 
     const validateForm = () => {
         return formData.firstName && formData.lastName && formData.userName &&
-               (editingCustomer || formData.password) && formData.contact.email &&
-               formData.contact.phoneNumber && formData.address.street &&
-               formData.address.municipality && formData.address.province &&
-               formData.address.postalCode && formData.address.country;
+               (editingCustomer || formData.password) &&
+               formData.contact.email && formData.contact.phoneNumber &&
+               formData.address.street && formData.address.municipality &&
+               formData.address.province && formData.address.postalCode &&
+               formData.address.country;
     };
 
     const resetForm = () => {
@@ -165,7 +191,7 @@ const AdminDashboard: React.FC = () => {
             firstName: customer.firstName,
             lastName: customer.lastName,
             userName: customer.userName,
-            password: '', // Don't populate password for security
+            password: '',
             customerDiscount: customer.customerDiscount,
             address: { ...customer.address },
             contact: { ...customer.contact }
@@ -181,7 +207,7 @@ const AdminDashboard: React.FC = () => {
             setFormData({
                 ...formData,
                 [parent]: {
-                    ...formData[parent as keyof typeof formData] as any,
+                    ...(formData[parent as keyof FormData] as any),
                     [child]: type === 'number' ? parseInt(value) || 0 : value
                 }
             });
@@ -259,6 +285,7 @@ const AdminDashboard: React.FC = () => {
                 </button>
             </div>
 
+            {/* Messages */}
             {loading && <p style={{ color: 'blue', textAlign: 'center' }}>Loading...</p>}
             {message && <p style={{ 
                 color: message.includes('Error') ? 'red' : 'green', 
@@ -328,103 +355,32 @@ const AdminDashboard: React.FC = () => {
                 </button>
             </div>
 
+            {/* Customers List and Details */}
             <div style={{ display: 'flex', gap: '20px' }}>
                 {/* Students List */}
                 <div style={{ flex: 2 }}>
                     <h2>All Students ({filteredCustomers.length})</h2>
-                    <div style={{ 
-                        maxHeight: '600px', 
-                        overflowY: 'auto', 
-                        border: '1px solid #ddd', 
-                        borderRadius: '4px'
-                    }}>
+                    <div style={{ maxHeight: '600px', overflowY: 'auto', border: '1px solid #ddd', borderRadius: '4px' }}>
                         {filteredCustomers.map((customer) => (
-                            <div key={customer.userId} style={{
-                                border: '1px solid #eee',
-                                padding: '15px',
-                                margin: '5px',
-                                backgroundColor: '#f9f9f9',
-                                borderRadius: '4px'
-                            }}>
+                            <div key={customer.userId} style={{ border: '1px solid #eee', padding: '15px', margin: '5px', backgroundColor: '#f9f9f9', borderRadius: '4px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                     <div style={{ flex: 1 }}>
-                                        <h3 style={{ margin: '0 0 5px 0' }}>
-                                            {customer.firstName} {customer.lastName}
-                                        </h3>
-                                        <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#666' }}>
-                                            <strong>Username:</strong> {customer.userName} | <strong>ID:</strong> {customer.userId}
-                                        </p>
-                                        <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#666' }}>
-                                            <strong>Email:</strong> {customer.contact.email}
-                                        </p>
-                                        <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#666' }}>
-                                            <strong>Phone:</strong> {customer.contact.phoneNumber}
-                                        </p>
-                                        <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#666' }}>
-                                            <strong>Location:</strong> {customer.address.municipality}, {customer.address.province}
-                                        </p>
-                                        <span style={{ 
-                                            backgroundColor: '#d4edda',
-                                            color: '#155724',
-                                            padding: '2px 6px',
-                                            borderRadius: '3px',
-                                            fontSize: '12px'
-                                        }}>
-                                            {customer.customerDiscount}% discount
-                                        </span>
+                                        <h3>{customer.firstName} {customer.lastName}</h3>
+                                        <p><strong>Username:</strong> {customer.userName} | <strong>ID:</strong> {customer.userId}</p>
+                                        <p><strong>Email:</strong> {customer.contact.email}</p>
+                                        <p><strong>Phone:</strong> {customer.contact.phoneNumber}</p>
+                                        <p><strong>Location:</strong> {customer.address.municipality}, {customer.address.province}</p>
+                                        <span style={{ backgroundColor: '#d4edda', color: '#155724', padding: '2px 6px', borderRadius: '3px', fontSize: '12px' }}>{customer.customerDiscount}% discount</span>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                        <button
-                                            onClick={() => fetchCustomerById(customer.userId)}
-                                            style={{ 
-                                                fontSize: '12px',
-                                                padding: '5px 8px',
-                                                backgroundColor: '#17a2b8',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: '3px',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            View Details
-                                        </button>
-                                        <button
-                                            onClick={() => handleEdit(customer)}
-                                            style={{ 
-                                                fontSize: '12px',
-                                                padding: '5px 8px',
-                                                backgroundColor: '#ffc107',
-                                                color: '#212529',
-                                                border: 'none',
-                                                borderRadius: '3px',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            onClick={() => deleteCustomer(customer.userId)}
-                                            style={{ 
-                                                fontSize: '12px',
-                                                padding: '5px 8px',
-                                                backgroundColor: '#dc3545',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: '3px',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            Delete
-                                        </button>
+                                        <button onClick={() => fetchCustomerById(customer.userId)} style={{ fontSize: '12px', padding: '5px 8px', backgroundColor: '#17a2b8', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}>View Details</button>
+                                        <button onClick={() => handleEdit(customer)} style={{ fontSize: '12px', padding: '5px 8px', backgroundColor: '#ffc107', color: '#212529', border: 'none', borderRadius: '3px', cursor: 'pointer' }}>Edit</button>
+                                        <button onClick={() => deleteCustomer(customer.userId)} style={{ fontSize: '12px', padding: '5px 8px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}>Delete</button>
                                     </div>
                                 </div>
                             </div>
                         ))}
-                        {filteredCustomers.length === 0 && (
-                            <p style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
-                                No students found
-                            </p>
-                        )}
+                        {filteredCustomers.length === 0 && <p style={{ padding: '20px', textAlign: 'center', color: '#666' }}>No students found</p>}
                     </div>
                 </div>
 
@@ -432,12 +388,7 @@ const AdminDashboard: React.FC = () => {
                 <div style={{ flex: 1 }}>
                     <h2>Student Details</h2>
                     {selectedCustomer ? (
-                        <div style={{ 
-                            border: '1px solid #ddd', 
-                            padding: '15px', 
-                            backgroundColor: '#f8f9fa',
-                            borderRadius: '4px'
-                        }}>
+                        <div style={{ border: '1px solid #ddd', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
                             <h3>{selectedCustomer.firstName} {selectedCustomer.lastName}</h3>
                             <p><strong>ID:</strong> {selectedCustomer.userId}</p>
                             <p><strong>Username:</strong> {selectedCustomer.userName}</p>
@@ -454,13 +405,7 @@ const AdminDashboard: React.FC = () => {
                             <p><strong>Email:</strong> {selectedCustomer.contact.email}</p>
                         </div>
                     ) : (
-                        <p style={{ 
-                            border: '1px solid #ddd', 
-                            padding: '15px', 
-                            backgroundColor: '#f8f9fa',
-                            borderRadius: '4px',
-                            color: '#666'
-                        }}>
+                        <p style={{ border: '1px solid #ddd', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '4px', color: '#666' }}>
                             Click "View Details" on any student to see their information here
                         </p>
                     )}
@@ -469,190 +414,26 @@ const AdminDashboard: React.FC = () => {
 
             {/* Form Modal */}
             {showForm && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    zIndex: 1000
-                }}>
-                    <div style={{
-                        backgroundColor: 'white',
-                        padding: '20px',
-                        borderRadius: '8px',
-                        maxWidth: '600px',
-                        width: '90%',
-                        maxHeight: '90vh',
-                        overflowY: 'auto'
-                    }}>
-                        <h3>{editingCustomer ? 'Edit Student' : 'Add New Student'}</h3>
-                        
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
-                            <div>
-                                <label>First Name *</label>
-                                <input
-                                    type="text"
-                                    name="firstName"
-                                    value={formData.firstName}
-                                    onChange={handleInputChange}
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-                                />
-                            </div>
-                            <div>
-                                <label>Last Name *</label>
-                                <input
-                                    type="text"
-                                    name="lastName"
-                                    value={formData.lastName}
-                                    onChange={handleInputChange}
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-                                />
-                            </div>
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', width: '600px', maxHeight: '90%', overflowY: 'auto' }}>
+                        <h2>{editingCustomer ? 'Edit Student' : 'Add New Student'}</h2>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                            <input type="text" name="firstName" placeholder="First Name" value={formData.firstName} onChange={handleInputChange} />
+                            <input type="text" name="lastName" placeholder="Last Name" value={formData.lastName} onChange={handleInputChange} />
+                            <input type="text" name="userName" placeholder="Username" value={formData.userName} onChange={handleInputChange} />
+                            {!editingCustomer && <input type="password" name="password" placeholder="Password" value={formData.password} onChange={handleInputChange} />}
+                            <input type="number" name="customerDiscount" placeholder="Discount %" value={formData.customerDiscount} onChange={handleInputChange} />
+                            <input type="text" name="contact.email" placeholder="Email" value={formData.contact.email} onChange={handleInputChange} />
+                            <input type="text" name="contact.phoneNumber" placeholder="Phone Number" value={formData.contact.phoneNumber} onChange={handleInputChange} />
+                            <input type="text" name="address.street" placeholder="Street" value={formData.address.street} onChange={handleInputChange} />
+                            <input type="text" name="address.municipality" placeholder="Municipality" value={formData.address.municipality} onChange={handleInputChange} />
+                            <input type="text" name="address.province" placeholder="Province" value={formData.address.province} onChange={handleInputChange} />
+                            <input type="text" name="address.postalCode" placeholder="Postal Code" value={formData.address.postalCode} onChange={handleInputChange} />
+                            <input type="text" name="address.country" placeholder="Country" value={formData.address.country} onChange={handleInputChange} />
                         </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
-                            <div>
-                                <label>Username *</label>
-                                <input
-                                    type="text"
-                                    name="userName"
-                                    value={formData.userName}
-                                    onChange={handleInputChange}
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-                                />
-                            </div>
-                            <div>
-                                <label>Discount (%)</label>
-                                <input
-                                    type="number"
-                                    name="customerDiscount"
-                                    value={formData.customerDiscount}
-                                    onChange={handleInputChange}
-                                    min="0"
-                                    max="100"
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-                                />
-                            </div>
-                        </div>
-
-                        {!editingCustomer && (
-                            <div style={{ marginBottom: '15px' }}>
-                                <label>Password *</label>
-                                <input
-                                    type="password"
-                                    name="password"
-                                    value={formData.password}
-                                    onChange={handleInputChange}
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-                                />
-                            </div>
-                        )}
-
-                        <h4>Contact Information</h4>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
-                            <div>
-                                <label>Email *</label>
-                                <input
-                                    type="email"
-                                    name="contact.email"
-                                    value={formData.contact.email}
-                                    onChange={handleInputChange}
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-                                />
-                            </div>
-                            <div>
-                                <label>Phone Number *</label>
-                                <input
-                                    type="tel"
-                                    name="contact.phoneNumber"
-                                    value={formData.contact.phoneNumber}
-                                    onChange={handleInputChange}
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-                                />
-                            </div>
-                        </div>
-
-                        <h4>Address Information</h4>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
-                            <div>
-                                <label>Street *</label>
-                                <input
-                                    type="text"
-                                    name="address.street"
-                                    value={formData.address.street}
-                                    onChange={handleInputChange}
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-                                />
-                            </div>
-                            <div>
-                                <label>Municipality *</label>
-                                <input
-                                    type="text"
-                                    name="address.municipality"
-                                    value={formData.address.municipality}
-                                    onChange={handleInputChange}
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-                                />
-                            </div>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
-                            <div>
-                                <label>Province *</label>
-                                <input
-                                    type="text"
-                                    name="address.province"
-                                    value={formData.address.province}
-                                    onChange={handleInputChange}
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-                                />
-                            </div>
-                            <div>
-                                <label>Postal Code *</label>
-                                <input
-                                    type="text"
-                                    name="address.postalCode"
-                                    value={formData.address.postalCode}
-                                    onChange={handleInputChange}
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-                                />
-                            </div>
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                            <button
-                                onClick={resetForm}
-                                style={{
-                                    padding: '10px 15px',
-                                    backgroundColor: '#6c757d',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleFormSubmit}
-                                disabled={loading}
-                                style={{
-                                    padding: '10px 15px',
-                                    backgroundColor: '#007bff',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: loading ? 'not-allowed' : 'pointer',
-                                    opacity: loading ? 0.6 : 1
-                                }}
-                            >
-                                {loading ? 'Saving...' : (editingCustomer ? 'Update Student' : 'Add Student')}
-                            </button>
+                        <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                            <button onClick={handleFormSubmit} style={{ padding: '8px 16px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Save</button>
+                            <button onClick={resetForm} style={{ padding: '8px 16px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
                         </div>
                     </div>
                 </div>
